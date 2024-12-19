@@ -2,62 +2,62 @@
 #include "contadores.h"
 #include <avr/interrupt.h>
 
+#define PF4_INTERRUPT               ( PORTF.INTFLAGS & PIN4_bm )
+#define PF4_CLEAR_INTERRUPT_FLAG    ( PORTF.INTFLAGS &= PIN4_bm )
+
+#define PE6_INTERRUPT               ( PORTE.INTFLAGS & PIN6_bm )
+#define PE6_CLEAR_INTERRUPT_FLAG    ( PORTE.INTFLAGS &= PIN6_bm )
+
 #ifdef MODEL_M3
-    #define CNT0_PIN_INTERRUPT               ( PORTF.INTFLAGS & PIN4_bm )
-    #define CNT0_CLEAR_INTERRUPT_FLAG        ( PORTF.INTFLAGS &= PIN4_bm )
 
     #define CNT0_PORT	PORTF
     #define CNT0_PIN    4   
     #define CNT0_PIN_bm	PIN4_bm
     #define CNT0_PIN_bp	PIN4_bp
 
-    // Los CNTx son inputs
-    #define CNT0_CONFIG()               ( CNT0_PORT.DIR &= ~CNT0_PIN_bm )
     #define CNT0_PIN_CONFIG()           PORTF.PIN4CTRL |= PORT_PULLUPEN_bm | PORT_ISC_FALLING_gc;
 
 #endif
 
 #ifdef MODEL_M2
-    #define CNT0_PIN_INTERRUPT               ( PORTE.INTFLAGS & PIN6_bm )
-    #define CNT0_CLEAR_INTERRUPT_FLAG        ( PORTE.INTFLAGS &= PIN6_bm )
 
     #define CNT0_PORT	PORTE
     #define CNT0_PIN    6   
     #define CNT0_PIN_bm	PIN6_bm
     #define CNT0_PIN_bp	PIN6_bp
 
-    // Los CNTx son inputs
-    #define CNT0_CONFIG()               ( CNT0_PORT.DIR &= ~CNT0_PIN_bm )
     #define CNT0_PIN_CONFIG()           PORTE.PIN6CTRL |= PORT_PULLUPEN_bm | PORT_ISC_FALLING_gc;
 
 #endif
+
 static bool f_debug_counters = false;
 
-void pv_counter_TimerCallback( TimerHandle_t xTimer );
+void pv_count_pulse(void);
+
+TaskHandle_t *l_xHandle_tkCtl;
 
 //------------------------------------------------------------------------------
-void counter_init_outofrtos( void )
+void counter_init_outofrtos( TaskHandle_t *xHandle )
 {
-    CNT0_CONFIG();
-          
-    // Configuro los pines para interrumpir
+    /*
+     * El pin del contador es INPUT, PULLOPEN e interrumpe en flanco de bajada.
+     * 
+     * Utilizo el handler de tkCtl para mostrar el debug.
+     * 
+     */
+    
+    l_xHandle_tkCtl = xHandle;
+    // Los CNTx son inputs
+    CNT0_PORT.DIR &= ~CNT0_PIN_bm;
     // Habilito a interrumpir, pullup, flanco de bajada.
     cli();
     CNT0_PIN_CONFIG();
+    //PORTF.PIN4CTRL |= PORT_PULLUPEN_bm | PORT_ISC_FALLING_gc;
     sei();
 }
 // ----------------------------------------------------------------------------- 
 void counter_init( void )
 {
-    counter_xTimer = xTimerCreateStatic ("CNT0",
-		pdMS_TO_TICKS( 10 ),    // 10 ms
-		pdTRUE,                 // Continuo.
-		( void * ) 0,
-		pv_counter_TimerCallback,
-		&counter_xTimerBuffer
-	);
-        
-    counter_clear();
     contador.fsm_ticks_count = 0;
 }
 // ----------------------------------------------------------------------------- 
@@ -231,104 +231,64 @@ char *p;
     
 }
 //------------------------------------------------------------------------------
-void pv_counter_TimerCallback( TimerHandle_t xTimer )
+void pv_count_pulse(void)
 {
-	/*
-     *  Funcion de callback de la entrada de contador A.
-     *  Controla el pulse_width y el debounce.
-     *  Lo arranca la llegada de la interrupcion.
-     *  El primer tick es a los 10 ms.
-     *  Controla si el nivel es alto aún. 
-     *  Si lo es, contabiliza un pulso.
-     *  Espera 50ms ( cuenta hasta 5) que es el pulso minimo y rearma el sistema
-     *  de interrupciones.
-     *  
-     */
-    
-float T_secs;
-uint32_t now_ticks;
-uint32_t T_ticks;
-float caudal;
+  
+BaseType_t xHigherPriorityTaskWoken = pdTRUE;
 
-    contador.fsm_ticks_count++;
+    contador.now_ticks = xTaskGetTickCountFromISR();
+    contador.T_ticks = contador.now_ticks - contador.start_pulse_ticks;
+    // Guardo el inicio del pulso para medir el caudal del proximo pulso
+    contador.start_pulse_ticks = contador.now_ticks;
     
-    // Pulso valido ( pulse width minimo )
-    if (contador.fsm_ticks_count == 1) {
-        if ( counter_read_pin() == 0 ) {
-            // El pulso tiene el ancho minimo de 10 ms: es valido
-            // incremento el contador de pulsos.
-            contador.pulsos++;
-            
-            // Vemos el ancho y el caudal....
-            now_ticks = xTaskGetTickCountFromISR();
-            T_ticks = now_ticks - contador.start_pulse_ticks;
-            T_secs =  (float)(1.0 * T_ticks);             // Duracion en ticks
-            T_secs /= configTICK_RATE_HZ;                 // Duracion en secs.
-            //T_secs /= 3600;                             // Duracion en horas
-
-            if ( T_secs > 0 ) {
-                caudal = counter_conf.magpp / T_secs;      // En mt3/s 
-                caudal *= 3600;                            // En mt3/h
-            } else {
-                caudal = 0.0;
-            } 
-            
-            // Guardo el inicio del pulso para medir el caudal del proximo pulso
-            contador.start_pulse_ticks = now_ticks;
-            contador.caudal = caudal;
-            
-#ifdef DEBUG_COUNTERS_TICKLESSMODE
-            // Guardo la duracion de los pulsos
-            contador.T_secs = T_secs;
-            contador.T_ticks = T_ticks;
-#endif
-            
-            
-            if (f_debug_counters) {
-                xprintf_P(PSTR("COUNTER: PULSOS=%d, CAUDAL=%0.3f, PW(secs)=%0.3f\r\n"), contador.pulsos, caudal, T_secs );
- 
-#ifdef DEBUG_COUNTERS_TICKLESSMODE
-                xprintf_P(PSTR("COUNTER**: TNOW=%lu, PW(ticks)=%lu\r\n"),  now_ticks,  T_ticks );
-#endif
-            }
-        }
-    }
-    
-    // Preparo todo para el proximo pulso. Con 10ms es suficiente.
-    xTimerStop(counter_xTimer, 10);
-    // Habilito la interrupcion
-    contador.fsm_ticks_count = 0;
-    return;
-        
-    // Debounced: Pulso valido
-    /*
-    if (contador.fsm_ticks_count == 5 ) {
-        // Apago el timer.
-         xTimerStop(counter_xTimer, 10);
-        // Habilito la interrupcion
-        contador.fsm_ticks_count = 0;
+    // No cuento pulsos menores de 100 ticks de ancho
+    if (contador.T_ticks < 10) {
         return;
     }
-     */
- 
-}
+    
+    contador.pulsos++;
+    contador.T_secs =  (float)(1.0 * contador.T_ticks);    // Duracion en ticks
+    contador.T_secs /= configTICK_RATE_HZ;                 // Duracion en secs.
 
+    if ( contador.T_secs > 0 ) {
+        contador.caudal = counter_conf.magpp / contador.T_secs;      // En mt3/s 
+        contador.caudal *= 3600;                                     // En mt3/h
+    } else {
+        contador.caudal = 0.0;
+    } 
+            
+    if (f_debug_counters) {
+        xTaskNotifyFromISR( *l_xHandle_tkCtl,
+                       0x01,
+                       eSetBits,
+                       &xHigherPriorityTaskWoken );
+        
+    }
+            
+}
 //------------------------------------------------------------------------------
+/*
+ * Note: If the flag is not cleared, the interrupt will keep triggering, so 
+ * it is essential that the flag is always cleared before exiting the ISR. 
+ * Any algorithm that relies on not clearing the interrupt flag is highly 
+ * discouraged because this effectively overloads the ISR responsibility. 
+ * The resulting responsibilities of the ISR will be to handle the interrupt 
+ * and to keep firing until the flag is cleared. 
+ * This violates the Single Responsibility principle in software design 
+ * and extreme care must be taken to avoid bugs.
+ */
 #ifdef MODEL_M3
 
 ISR(PORTF_PORT_vect)
 {
-
     // Borro las flags.
-    if (CNT0_PIN_INTERRUPT ) {
-        
-        if ( contador.fsm_ticks_count == 0) {
-            // Arranca el timer que va a hacer el debounced
-            xTimerStart(counter_xTimer, 10);   
-        }
-            
+    if (PF4_INTERRUPT) {
+        //led_toggle();
+        pv_count_pulse();
+                    
         // Se borra la flag de interrupcion para habilitarla de nuevo
-        CNT0_CLEAR_INTERRUPT_FLAG;
+        // Si no la borro antes de salir, se vuelve a generar la int.
+        PF4_CLEAR_INTERRUPT_FLAG;
     }
 
 }
@@ -338,17 +298,14 @@ ISR(PORTF_PORT_vect)
 
 ISR(PORTE_PORT_vect)
 {
-
     // Borro las flags.
-    if (CNT0_PIN_INTERRUPT ) {
-        
-        if ( contador.fsm_ticks_count == 0) {
-            // Arranca el timer que va a hacer el debounced
-            xTimerStart(counter_xTimer, 10);   
-        }
-            
+    if (PE6_INTERRUPT) {
+        //led_toggle();
+        pv_count_pulse();
+                    
         // Se borra la flag de interrupcion para habilitarla de nuevo
-        CNT0_CLEAR_INTERRUPT_FLAG;
+        // Si no la borro antes de salir, se vuelve a generar la int.
+        PE6_CLEAR_INTERRUPT_FLAG;
     }
 
 }

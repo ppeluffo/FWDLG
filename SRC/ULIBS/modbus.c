@@ -40,10 +40,36 @@ uint16_t (*ptrFuncGetCount) (void);
 // Puntero que nos da la direccion de comienzo del buffer de recepcion 
 char *(*ptrFunc_getRXBuffer) (void);
 
+TaskHandle_t *l_xHandle_tkRS485;
+
 //------------------------------------------------------------------------------
-void modbus_init_outofrtos(void)
+void RS485_AWAKE(void)
+{
+    
+    //taskENTER_CRITICAL();
+    rs485_awake = true;
+    //taskEXIT_CRITICAL();
+    
+    // Despierto a la tarea.
+    xTaskNotifyGive( *l_xHandle_tkRS485 );
+    
+    vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
+    
+}
+//------------------------------------------------------------------------------
+void RS485_SLEEP(void)
+{
+    //taskENTER_CRITICAL();
+    rs485_awake = false;
+    //taskEXIT_CRITICAL();
+    
+}
+//------------------------------------------------------------------------------
+void modbus_init_outofrtos( TaskHandle_t *xHandle )
 {
     sem_RS485 = xSemaphoreCreateMutexStatic( &RS485_xMutexBuffer );
+    
+    l_xHandle_tkRS485 = xHandle;
 }
 // -----------------------------------------------------------------------------
 void modbus_init( int fd_modbus, int buffer_size, void (*f)(void), uint16_t (*g)(void), char *(*h)(void)  )

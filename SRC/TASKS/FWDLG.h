@@ -55,7 +55,6 @@ extern "C" {
 #include "limits.h"
 #include "portable.h"
 #include "portmacro.h"
-#include "protected_io.h"
 #include "ccp.h"
 
 #include <avr/wdt.h> 
@@ -87,22 +86,23 @@ extern "C" {
 #include "bits.h"
 #include "pines.h"
 
-#ifdef MODEL_M3
-    
+#ifdef MODEL_M1
+
     #ifndef F_CPU
-        define F_CPU 24000000
+        #define F_CPU 32000000
     #endif
     
-    #define FW_TYPE "SPQ_AVRDA"  
-    #define SYSMAINCLK 24
+    #define FW_TYPE "SPX_XMEGA"  
+    #define SYSMAINCLK 32
     #define HW_MODELO "FWDLG FWFRTOS R001 HW:AVR128DA64"
 
 #endif
-      
+                
 #ifdef MODEL_M2
-    
+   
+#include "protected_io.h"
     #ifndef F_CPU
-        define F_CPU 24000000
+        #define F_CPU 24000000
     #endif
     
     #define FW_TYPE "SPX_AVRDA"  
@@ -110,10 +110,23 @@ extern "C" {
     #define HW_MODELO "FWDLG FWFRTOS R001 HW:AVR128DA64"
 
 #endif
+ 
+#ifdef MODEL_M3
+
+#include "protected_io.h"
+    #ifndef F_CPU
+        #define F_CPU 24000000
+    #endif
+    
+    #define FW_TYPE "SPQ_AVRDA"  
+    #define SYSMAINCLK 24
+    #define HW_MODELO "FWDLG FWFRTOS R001 HW:AVR128DA64"
+
+#endif
                 
 #define FW_REV "1.3.7"
-#define FW_DATE "@ 20241014"
-#define FRTOS_VERSION "FW:FreeRTOS V202111.00"
+#define FW_DATE "@ 20241217"
+#define FRTOS_VERSION "FW:FreeRTOS 202212.01"
 
 
 #define tkCtl_TASK_PRIORITY	 	( tskIDLE_PRIORITY + 1 )
@@ -271,14 +284,6 @@ bool tk_watchdog[RUNNING_TASKS];
 
 void u_kick_wdt( t_wdg_ids wdg_id);
 void u_print_watchdogs(void);
-
-bool rs485_awake;
-void RS485_AWAKE(void);
-void RS485_SLEEP(void);
-
-bool modem_awake;
-void MODEM_AWAKE(void);
-void MODEM_SLEEP(void);
 
 uint8_t wdg_resetCause;
 

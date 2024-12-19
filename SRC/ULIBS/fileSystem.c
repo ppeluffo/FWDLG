@@ -72,10 +72,13 @@ void FAT_read( fat_s *dstfat)
     // 20230808: Si algun parametro es negativo, la reseteo.
     // Cambio la fat de int_16 a uint_16
 
+    //xprintf_P(PSTR("DEBUG 1.1\r\n"));
+    
     if ( ( FAT.count < 0) || ( FAT.head < 0 ) || ( FAT.length < 0) || (FAT.tail < 0) ) {
         pv_fat_flush();
     }
     
+    //xprintf_P(PSTR("DEBUG 1.2\r\n"));
     //if ( FAT.length > FF_MAX_RCDS ) {
     if ( ( FAT.count > FF_MAX_RCDS) || ( FAT.head > FF_MAX_RCDS ) || ( FAT.length > FF_MAX_RCDS) || (FAT.tail > FF_MAX_RCDS) ) {
          pv_fat_flush();

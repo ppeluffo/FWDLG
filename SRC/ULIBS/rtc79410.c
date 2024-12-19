@@ -44,7 +44,7 @@ int16_t RTC_read( uint16_t rdAddress, char *data, uint8_t length )
 {
 
 int16_t rcode = 0;
-uint8_t fdI2C;
+file_descriptor_t fdI2C;
 
 #ifdef MODEL_M3
     fdI2C = fdI2C1;
@@ -65,7 +65,6 @@ uint8_t fdI2C;
 	}
 
 quit:
-
 	return( rcode );
 
 }

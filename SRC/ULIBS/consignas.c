@@ -23,10 +23,7 @@
  * Luego, leyendo el registro vemos cuando termino porque el bit RUN esta en 0.
  * 
  */
-#define VALVULA0_CERRADA_gc (0x00 << 0)
-#define VALVULA0_ABIERTA_gc (0x01 << 0)
-#define VALVULA1_CERRADA_gc (0x00 << 1)
-#define VALVULA1_ABIERTA_gc (0x01 << 1)
+
 
 bool f_debug_consigna = true;
 
@@ -113,37 +110,41 @@ char *p;
     return(hash);   
 }
 //------------------------------------------------------------------------------
-void consigna_prender_sensor(void)
-{
-    /*
-     * Prendo la fuente del sensor y espero 2 secs que se estabilize.
-     */
-    
-    if (f_debug_consigna ) {
-        xprintf_P(PSTR("DEBUG CONSIGNA: prender_sensor\r\n"));
-    }
-
-    SET_EN_PWR_CPRES();
-    vTaskDelay( ( TickType_t)( 2000 / portTICK_PERIOD_MS ) );
-
-}
-//------------------------------------------------------------------------------
-void consigna_apagar_sensor(void)
-{
-    /*
-     * Apago la alimentacion del sensor
-     */
-    
-    if (f_debug_consigna ) {
-        xprintf_P(PSTR("CONSIGNA: apagar_sensor\r\n"));
-    }
-    CLEAR_EN_PWR_CPRES();
-    vTaskDelay( ( TickType_t)( 2000 / portTICK_PERIOD_MS ) );
-
-}
-//------------------------------------------------------------------------------
 bool consigna_debug_flag(void)
 {
     return (f_debug_consigna);
+}
+//------------------------------------------------------------------------------
+bool CONSIGNA_set_diurna(void)
+{
+    // Setea la consigna DIURNA
+        
+    if (f_debug_consigna) {
+        xprintf_P(PSTR("CONSIGNA: Set_diurna\r\n"));
+    }
+
+    if ( cpres_consigna_set(CONSIGNA_DIURNA ) ) {
+        consigna_aplicada = CONSIGNA_DIURNA;
+        return(true);
+    }
+
+    return(false);
+}
+//------------------------------------------------------------------------------
+bool CONSIGNA_set_nocturna(void)
+{
+    // Setea la consigna NOCTURNA
+
+ 
+     if ( f_debug_consigna ) {
+        xprintf_P(PSTR("CONSIGNA: Set_nocturna\r\n"));
+    }
+
+    if ( cpres_consigna_set(CONSIGNA_NOCTURNA ) ) {
+        consigna_aplicada = CONSIGNA_NOCTURNA; 
+        return(true);
+    }
+
+    return(false);
 }
 //------------------------------------------------------------------------------

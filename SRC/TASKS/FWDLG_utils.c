@@ -944,45 +944,6 @@ uint32_t waiting_secs;
     return(waiting_secs);
 }
 //------------------------------------------------------------------------------
-void RS485_AWAKE(void)
-{
-    
-    //taskENTER_CRITICAL();
-    rs485_awake = true;
-    //taskEXIT_CRITICAL();
-    
-    // Despierto a la tarea.
-    xTaskNotifyGive( xHandle_tkRS485RX );
-    
-    vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
-    
-}
-//------------------------------------------------------------------------------
-void RS485_SLEEP(void)
-{
-    //taskENTER_CRITICAL();
-    rs485_awake = false;
-    //taskEXIT_CRITICAL();
-    
-}
-//------------------------------------------------------------------------------
-void MODEM_AWAKE(void)
-{
-    modem_awake = true;
-    
-    // Despierto a la tarea.
-    xTaskNotifyGive( xHandle_tkModemRX );
- 
-    vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
-    
-}
-//------------------------------------------------------------------------------
-void MODEM_SLEEP(void)
-{
-    modem_awake = false;
-    
-}
-//------------------------------------------------------------------------------
 /*
 bool u_test_NVM_CKS(void)
 {

@@ -165,6 +165,11 @@ void MODEM_flush_rx_buffer(void);
 bool MODEM_enter_mode_at(bool verbose);
 void MODEM_exit_mode_at(bool verbose);
 
+bool modem_awake;
+void MODEM_AWAKE(void);
+void MODEM_SLEEP(void);
+
+void modem_init_outofrtos( TaskHandle_t *xHandle );
 char *modem_atcmd(char *s_cmd, bool verbose);
 void modem_atcmd_save(bool verbose);
 void modem_atcmd_queryall(void);

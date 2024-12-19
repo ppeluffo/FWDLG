@@ -30,6 +30,7 @@ void tkCtl(void * pvParameters)
 
 ( void ) pvParameters;
 fat_s l_fat;
+uint32_t ulNotificationValue;
 
 	vTaskDelay( ( TickType_t)( 500 / portTICK_PERIOD_MS ) );
     xprintf_P(PSTR("Starting tkCtl..\r\n"));
@@ -52,7 +53,7 @@ fat_s l_fat;
        xprintf_P(PSTR("Loading config default..\r\n"));
        u_config_default(NULL);
     }
-         
+     
     // Inicializo la memoria EE ( fileSysyem)
 	if ( FS_open() ) {
 		xprintf_P( PSTR("FSInit OK\r\n"));
@@ -61,8 +62,8 @@ fat_s l_fat;
         xprintf_P( PSTR("FSInit FAIL !!.Reformatted...\r\n"));
 	}
 
-    wdt_reset();
-    FAT_read(&l_fat);
+    wdt_reset();   
+    FAT_read(&l_fat); 
 	xprintf_P( PSTR("MEMsize=%d, wrPtr=%d, "),FF_MAX_RCDS, l_fat.head );
     xprintf_P( PSTR("rdPtr=%d, count=%d\r\n"),l_fat.tail, l_fat.count );
 
@@ -92,8 +93,21 @@ fat_s l_fat;
         sys_daily_reset();       
         // Duerme 5 secs y corre.
         //vTaskDelay( ( TickType_t)( 1000 / portTICK_PERIOD_MS ) );
-		vTaskDelay( ( TickType_t)( 1000 * TKCTL_DELAY_S / portTICK_PERIOD_MS ) );
+		//vTaskDelay( ( TickType_t)( 1000 * TKCTL_DELAY_S / portTICK_PERIOD_MS ) );
+        // Estoy en tickless
+        ulNotificationValue = ulTaskNotifyTake(pdTRUE, ( TickType_t)( (1000 * TKCTL_DELAY_S) / portTICK_PERIOD_MS ));
         
+        if( ( ulNotificationValue & 0x01 ) != 0 )
+        {
+            xprintf_P(PSTR("COUNTER: PULSOS=%d, CAUDAL=%0.3f, PW(secs)=%0.3f\r\n"), contador.pulsos, contador.caudal, contador.T_secs );
+ 
+#ifdef DEBUG_COUNTERS_TICKLESSMODE
+            xprintf_P(PSTR("COUNTER**: TNOW=%lu, PW(ticks)=%lu\r\n"),  contador.now_ticks,  contador.T_ticks );
+#endif
+
+            /* Bit 0 was set - process whichever event is represented by bit 0. */
+            
+        }
 	}
 }
 //------------------------------------------------------------------------------
@@ -117,9 +131,8 @@ char strBuffer[15] = { '\0' } ;
      * 
      */
     wdt_reset();
-    return;
-    
-         
+    //return;
+          
     /* EL wdg lo leo cada 240secs ( 5 x 60 )
      * Chequeo que cada tarea haya reseteado su wdg
      * ( debe haberlo puesto en true )

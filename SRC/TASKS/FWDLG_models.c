@@ -4,7 +4,6 @@
 
 #ifdef MODEL_M3
 
-
 #define TERM_SENSE_PORT         PORTA
 #define TERM_SENSE_PIN              3
 #define TERM_SENSE_PIN_bm       PIN3_bm

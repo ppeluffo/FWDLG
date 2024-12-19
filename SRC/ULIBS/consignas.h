@@ -27,6 +27,8 @@ extern "C" {
 #include "utils.h"
 #include "pines.h"
 #include "modbus.h"
+#include "bits.h"
+#include "cpres.h"
     
 typedef struct {
     bool enabled;
@@ -46,8 +48,6 @@ bool consigna_config( char *s_enable, char *s_cdiurna, char *s_cnocturna );
 void consigna_print_configuration(void);
 void consigna_config_debug(bool debug );
 uint8_t consigna_hash(void);
-void consigna_prender_sensor(void);
-void consigna_apagar_sensor(void);
 bool consigna_debug_flag(void);
 
 bool CONSIGNA_set_diurna(void);

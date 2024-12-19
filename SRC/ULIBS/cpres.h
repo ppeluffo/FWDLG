@@ -22,15 +22,20 @@ extern "C" {
     
 #include "modbus.h"
 #include "xprintf.h"
-#include "rtc79410.h"
-    
-bool CPRES_IS_ON;
-    
-int8_t cpres_set_valves(uint8_t valve0_gc, uint8_t valve1_gc);
-int8_t cpres_check_status(void);
 
-void cpres_consigna_initService(void);
-void cpres_consigna_service(void);
+    
+void cpres_prender_sensor(void);
+void cpres_apagar_sensor(void);
+bool cpres_consigna_set( uint8_t consigna);
+bool cpres_sensor_is_idle(void);
+bool cpres_sensor_write( uint8_t consigna);
+
+#define SENSOR_PRESION_ADDR  0x64
+#define STATUS_BIT           7
+
+mbus_CONTROL_BLOCK_t consigna_mbus_cb;
+
+
 
 #ifdef	__cplusplus
 }

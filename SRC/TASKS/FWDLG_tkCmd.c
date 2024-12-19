@@ -69,6 +69,69 @@ uint8_t c = 0;
        
     cmd_pwrmode = CMD_AWAKE;
     cmd_state_timer = CMD_TIMER_AWAKE;
+    
+    for(;;)
+    {
+        u_kick_wdt(TK_CMD);
+        while ( xgetc( (char *)&c ) == 1 ) {
+            FRTOS_CMD_process(c);
+        }
+        
+        //vTaskDelay( ( TickType_t)( 60000 / portTICK_PERIOD_MS ) );
+        //vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
+        
+        if ( p_read_termsense() == 0 ) {
+            vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
+        } else {
+            vTaskDelay( ( TickType_t)( 60000 / portTICK_PERIOD_MS ) );
+        } 
+                           
+    } 
+ 
+}
+
+//------------------------------------------------------------------------------
+void __tkCmd__(void * pvParameters)
+{
+
+	// Esta es la primer tarea que arranca.
+
+( void ) pvParameters;
+uint8_t c = 0;
+
+ //   uxHighWaterMark = SPYuxTaskGetStackHighWaterMark( NULL );
+    
+    while ( ! starting_flag )
+        vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
+
+    // Marco la tarea activa
+    SYSTEM_ENTER_CRITICAL();
+    tk_running[TK_CMD] = true;
+    SYSTEM_EXIT_CRITICAL();
+             
+	//vTaskDelay( ( TickType_t)( 500 / portTICK_PERIOD_MS ) );
+
+ //   xprintf_P(PSTR("STACK::cmd_hwm 1 = %d\r\n"),uxHighWaterMark );
+
+    FRTOS_CMD_init();
+
+    FRTOS_CMD_register( "cls", cmdClsFunction );
+	FRTOS_CMD_register( "help", cmdHelpFunction );
+    FRTOS_CMD_register( "reset", cmdResetFunction );
+    FRTOS_CMD_register( "status", cmdStatusFunction );
+    FRTOS_CMD_register( "write", cmdWriteFunction );
+    FRTOS_CMD_register( "read", cmdReadFunction );
+    FRTOS_CMD_register( "config", cmdConfigFunction );
+    FRTOS_CMD_register( "test", cmdTestFunction );
+    
+    xprintf_P(PSTR("Starting tkCmd..\r\n" ));
+    xprintf_P(PSTR("Spymovil %s %s %s %s \r\n") , HW_MODELO, FRTOS_VERSION, FW_REV, FW_DATE);
+      
+ //   uxHighWaterMark = SPYuxTaskGetStackHighWaterMark( NULL );
+ //   xprintf_P(PSTR("STACK::cmd_hwm 2 = %d\r\n"),uxHighWaterMark );
+       
+    cmd_pwrmode = CMD_AWAKE;
+    cmd_state_timer = CMD_TIMER_AWAKE;
 
     /*
     for(;;)
@@ -135,6 +198,7 @@ static void cmdTestFunction(void)
     FRTOS_CMD_makeArgv();
 
 uint8_t params;
+//BaseType_t xHigherPriorityTaskWoken = pdTRUE;
 
     // CKS
     /*
@@ -143,6 +207,37 @@ uint8_t params;
         return;
     }
      */
+
+    // TKNOTIFY
+    /*
+    if (!strcmp_P( strupr(argv[1]), PSTR("NOTIFY"))  ) {
+                xTaskNotifyFromISR( xHandle_tkCtl,
+                       0x01,
+                       eSetBits,
+                       &xHigherPriorityTaskWoken );
+        
+        return;
+    }
+     */
+
+    // CONSIGNA
+    // test consigna {diurna|nocturna}
+    if (!strcmp_P( strupr(argv[1]), PSTR("CONSIGNA"))  ) {
+        if (!strcmp_P( strupr(argv[2]), PSTR("DIURNA"))  ) {
+            CONSIGNA_set_diurna();
+            pv_snprintfP_OK();
+            return;
+        }
+        
+        if (!strcmp_P( strupr(argv[2]), PSTR("NOCTURNA"))  ) {
+            CONSIGNA_set_nocturna();
+            pv_snprintfP_OK();
+            return;
+        }
+        
+        pv_snprintfP_ERR();
+        return;  
+    }
 
     // TERMSENSE
     if (!strcmp_P( strupr(argv[1]), PSTR("TSENSE"))  ) {
@@ -215,7 +310,7 @@ uint8_t params;
         return;
     }
     
-    // cpctl,sens3v3, sens12V, pwr_sensors{enable|disable}
+    // sens3v3, sens12V, pwr_sensors{enable|disable}
     if (!strcmp_P( strupr(argv[1]), PSTR("PWR_SENSORS"))  ) {
                
         if (!strcmp_P( strupr(argv[2]), PSTR("ENABLE"))  ) {
@@ -234,24 +329,6 @@ uint8_t params;
         return;
     }
     
-    if (!strcmp_P( strupr(argv[1]), PSTR("CPCTL"))  ) {
-               
-        if (!strcmp_P( strupr(argv[2]), PSTR("ENABLE"))  ) {
-            SET_EN_PWR_CPRES();
-            pv_snprintfP_OK();
-            return;
-        }        
-
-        if (!strcmp_P( strupr(argv[2]), PSTR("DISABLE"))  ) {
-            CLEAR_EN_PWR_CPRES();
-            pv_snprintfP_OK();
-            return;
-        } 
-        
-        pv_snprintfP_ERR();
-        return;
-    }
-
     if (!strcmp_P( strupr(argv[1]), PSTR("SENS3V3"))  ) {
                
         if (!strcmp_P( strupr(argv[2]), PSTR("ENABLE"))  ) {

@@ -93,7 +93,7 @@ typedef struct {
 } mbus_CONTROL_BLOCK_t;
 
 
-void modbus_init_outofrtos(void);
+void modbus_init_outofrtos( TaskHandle_t *xHandle );
 void modbus_init( int fd_modbus, int buffer_size, void (*f)(void), uint16_t (*g)(void), char *(*h)(void)  );
 
 void modbus_config_debug(bool debug );
@@ -131,6 +131,11 @@ uint16_t modbus_CRC16( uint8_t *msg, uint8_t msg_size );;
 
 bool MODBUS_test_genpoll(char *arg_ptr[16] );
 bool MODBUS_test_channel( uint8_t channel );
+
+
+bool rs485_awake;
+void RS485_AWAKE(void);
+void RS485_SLEEP(void);
 
 void RS485COMMS_ENTER_CRITICAL(void);
 void RS485COMMS_EXIT_CRITICAL(void);

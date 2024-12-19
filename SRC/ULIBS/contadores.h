@@ -66,7 +66,7 @@ TimerHandle_t counter_xTimer;
 
 counter_value_t contador;
 
-void counter_init_outofrtos(void);
+void counter_init_outofrtos(TaskHandle_t *xHandle);
 void counter_init( void );
 void counter_config_defaults( void );
 void counter_print_configuration( void );

@@ -27,6 +27,8 @@ static void modem_config_default_ose(void);
 static void modem_config_default_spy(void);
 static void modem_config_default_besteffort(void);
 
+TaskHandle_t *l_xHandle_tkModemRX;
+
 //--------------------------------------------------------------------------
 void MODEM_init(void)
 {
@@ -170,6 +172,12 @@ char *p;
     }
 }
 //------------------------------------------------------------------------------
+void modem_init_outofrtos( TaskHandle_t *xHandle )
+{
+    
+    l_xHandle_tkModemRX = xHandle;
+}
+// -----------------------------------------------------------------------------
 char *modem_atcmd(char *s_cmd, bool verbose)
 {
     /*
@@ -775,7 +783,23 @@ bool save_dlg_config = false;
     return(save_dlg_config);
     
 }
-
+//------------------------------------------------------------------------------
+void MODEM_AWAKE(void)
+{
+    modem_awake = true;
+    
+    // Despierto a la tarea.
+    xTaskNotifyGive( *l_xHandle_tkModemRX );
+ 
+    vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
+    
+}
+//------------------------------------------------------------------------------
+void MODEM_SLEEP(void)
+{
+    modem_awake = false;
+    
+}
 //------------------------------------------------------------------------------
 /*
 t_lte_pwr_status LTE_get_pwr_status(void)

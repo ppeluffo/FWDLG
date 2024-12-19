@@ -924,7 +924,7 @@ uint32_t *p = NULL;
 
 	p = pvValue;
 
-	switch( ulRequest )
+ 	switch( ulRequest )
 	{
 		case ioctl_OBTAIN_BUS_SEMPH:
 			// Espero el semaforo en forma persistente.

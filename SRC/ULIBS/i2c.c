@@ -100,10 +100,10 @@ uint8_t i2c_error_code = 0;
 	frtos_ioctl( fdTWI, ioctl_I2C_SET_DATAADDRESS, &dataAddress );
 	frtos_ioctl( fdTWI, ioctl_I2C_SET_DATAADDRESSLENGTH, &dataAddress_length );
 
-	// 3) Leemos. No controlo fronteras.
+ 	// 3) Leemos. No controlo fronteras.
 	xReturn = frtos_read( fdTWI, data, data_length);
 
-	// 4) Controlo errores.
+ 	// 4) Controlo errores.
 	i2c_error_code = frtos_ioctl( fdTWI, ioctl_I2C_GET_LAST_ERROR, NULL );
 	if (i2c_error_code != I2C_OK ) {
         if ( i2c_debug ) 
